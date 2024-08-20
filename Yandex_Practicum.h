@@ -17,14 +17,14 @@ const int MAX_RESULT_DOCUMENT_COUNT = 5;
 
 string ReadLine() {
 	string s;
-	getline(cin >> ws, s);
+	getline(cin, s);
 	return s;
 }
 
 int ReadLineWithNumber() {
 	int result = 0;
 	cin >> result;
-	//ReadLine();
+	ReadLine();
 	return result;
 }
 
