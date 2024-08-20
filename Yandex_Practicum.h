@@ -17,14 +17,14 @@ const int MAX_RESULT_DOCUMENT_COUNT = 5;
 
 string ReadLine() {
 	string s;
-	getline(cin, s);
+	getline(cin >> ws, s);
 	return s;
 }
 
 int ReadLineWithNumber() {
 	int result = 0;
 	cin >> result;
-	ReadLine();
+	//ReadLine();
 	return result;
 }
 
@@ -37,18 +37,18 @@ public:
 
 	void AddDocument(int doc_id, const string& text)
 	{
-		const vector<string> words = SplitIntoWordsNoStop(text);
-		double doc_size = DOUBLE(words.size());
+		const vector<string> words = SplitIntoWords(text, true);
+		double doc_sizeDelta = 1.0 / DOUBLE(words.size());
 
 		for (const string& word : words)
 		{
 			if (docs_content.count(word))
 			{
-				docs_content[word][doc_id] += 1.0 / doc_size;
+				docs_content[word][doc_id] += doc_sizeDelta;
 			}
 			else
 			{
-				docs_content[word] = map<int, double>{ {doc_id, 1.0 / doc_size} };
+				docs_content[word] = map<int, double>{ {doc_id, doc_sizeDelta} };
 			}
 		}
 
@@ -60,7 +60,7 @@ public:
 	{
 		query query_words;
 		
-		for (const string& word : SplitIntoWordsNoStop(text)) {
+		for (const string& word : SplitIntoWords(text, true)) {
 			if (word.at(0) == '-')
 			{
 				query_words.min_words.insert(word.substr(1));
@@ -105,8 +105,7 @@ private: // methods
 	{
 		if (docs_content.count(word))
 		{
-			double count = DOUBLE (docs_count_) / DOUBLE(docs_content.at(word).size());
-			return log(count);
+			return log(DOUBLE(docs_count_) / DOUBLE(docs_content.at(word).size()) );
 		}
 		else
 		{
@@ -123,14 +122,8 @@ private: // methods
 			
 			if (docs_content.count(word))
 			{
-				for (const auto& [id, count] : docs_content.at(word))
-				{
-					//if (!idf)
-					//{
-					//	document_to_relevance[id] = idf * docs_content.at(word).at(id);
-					//	continue;
-					//}
-					
+				for (const auto& [id, tf] : docs_content.at(word))
+				{	
 					if (document_to_relevance.count(id))
 					{
 						document_to_relevance[id] += idf * docs_content.at(word).at(id);
@@ -179,14 +172,17 @@ private: // fields
 
 private: // methods
 
-	vector<string> SplitIntoWords(const string& text) const
+	vector<string> SplitIntoWords(const string& text, bool ignore_stop = false) const
 	{
 		vector<string> words;
 		string word;
 		for (const char c : text) {
 			if (c == ' ') {
 				if (!word.empty()) {
-					words.push_back(word);
+					if (!ignore_stop || (ignore_stop && !stop_words.count(word)))
+					{
+						words.push_back(word);
+					}
 					word.clear();
 				}
 			}
@@ -200,18 +196,6 @@ private: // methods
 
 		return words;
 	}
-
-	vector<string> SplitIntoWordsNoStop(const string& text) const
-	{
-		vector<string> words;
-		for (const string& word : SplitIntoWords(text)) {
-			if (stop_words.count(word) == 0) {
-				words.push_back(word);
-			}
-		}
-		return words;
-	}
-
 };
 
 const SearchServer CreateSearchServer()
