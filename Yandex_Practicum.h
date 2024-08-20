@@ -38,15 +38,17 @@ public:
 	void AddDocument(int doc_id, const string& text)
 	{
 		const vector<string> words = SplitIntoWordsNoStop(text);
+		double doc_size = DOUBLE(words.size());
+
 		for (const string& word : words)
 		{
 			if (docs_content.count(word))
 			{
-				docs_content[word][doc_id]++;
+				docs_content[word][doc_id] += 1.0 / doc_size;
 			}
 			else
 			{
-				docs_content[word] = map<int, int>{ {doc_id, 1} };
+				docs_content[word] = map<int, double>{ {doc_id, 1.0 / doc_size} };
 			}
 		}
 
@@ -111,18 +113,6 @@ private: // methods
 			return 0.0;
 		}
 	}
-
-	double calculate_TF(const string& query_word, const int& id_doc) const
-	{
-		double tf {0.0};
-		
-		if (docs_content.count(query_word))
-		{
-			tf = DOUBLE(docs_content.at(query_word).at(id_doc)) / DOUBLE(docs_size_.at(id_doc));
-		}
-
-		return tf;
-	}
 	
 	vector<Document> FindAllDocuments(const query& query_words) const
 	{
@@ -131,19 +121,17 @@ private: // methods
 		{
 			double idf = calculate_IDF(word);
 			
-			if (docs_content.count(word))
+			if (docs_content.count(word) && idf)
 			{
 				for (const auto& [id, count] : docs_content.at(word))
 				{
-					double tf = calculate_TF(word, id);
-
 					if (document_to_relevance.count(id))
 					{
-						document_to_relevance[id] += idf * tf;
+						document_to_relevance[id] += idf * docs_content.at(word).at(id);
 					}
 					else
 					{
-						document_to_relevance[id] = idf * tf;
+						document_to_relevance[id] = idf * docs_content.at(word).at(id);
 					}
 				}
 			}
@@ -179,7 +167,7 @@ private: // methods
 private: // fields
 	set<string> stop_words;
 	vector<Document> relevance;
-	map<string, map<int, int>> docs_content;
+	map<string, map<int, double>> docs_content;
 	int docs_count_ = 0;
 	vector<int> docs_size_;
 
