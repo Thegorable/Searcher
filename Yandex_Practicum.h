@@ -1,4 +1,3 @@
-#pragma once
 #include <iostream>
 #include <vector>
 #include <set>
@@ -7,10 +6,13 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <cmath>
+
+#define DOUBLE static_cast<double>
 
 using namespace std;
 
-struct Document { int id; int relevance; };
+struct Document { int id; double relevance; };
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 
 string ReadLine() {
@@ -33,20 +35,23 @@ private:
 
 public:
 
-	void AddDocument(int document_id, const string& document)
+	void AddDocument(int doc_id, const string& text)
 	{
-		const vector<string> words = SplitIntoWords(document, true);
+		const vector<string> words = SplitIntoWords(text, true);
 		for (const string& word : words)
 		{
 			if (docs_content.count(word))
 			{
-				docs_content[word].insert(document_id);
+				docs_content[word][doc_id]++;
 			}
 			else
 			{
-				docs_content[word] = set<int>{ document_id };
+				docs_content[word] = map<int, int>{ {doc_id, 1} };
 			}
 		}
+
+		docs_size_.push_back(words.size());
+		docs_count_++;
 	}
 
 	query ParseQuery(const string& text) const
@@ -68,8 +73,11 @@ public:
 	}
 
 	void SetStopWords(const string& text) {
-		for (const string& word : SplitIntoWords(text)) {
-			stop_words.insert(word);
+		if (text.size())
+		{
+			for (const string& word : SplitIntoWords(text)) {
+				stop_words.insert(word);
+			}
 		}
 	}
 	
@@ -91,22 +99,51 @@ public:
 
 private: // methods
 	
+	double calculate_IDF(const string& word) const
+	{
+		if (docs_content.count(word))
+		{
+			double count = DOUBLE (docs_count_) / DOUBLE(docs_content.at(word).size());
+			return log(count);
+		}
+		else
+		{
+			return 0.0;
+		}
+	}
+
+	double calculate_TF(const string& query_word, const int& id_doc) const
+	{
+		double tf {0.0};
+		
+		if (docs_content.count(query_word))
+		{
+			tf = DOUBLE(docs_content.at(query_word).at(id_doc)) / DOUBLE(docs_size_.at(id_doc));
+		}
+
+		return tf;
+	}
+	
 	vector<Document> FindAllDocuments(const query& query_words) const
 	{
-		map<int, int> document_to_relevance;
-		for (const auto& word : query_words.plus_words)
+		map<int, double> document_to_relevance;
+		for (const string& word : query_words.plus_words)
 		{
+			double idf = calculate_IDF(word);
+			
 			if (docs_content.count(word))
 			{
-				for (const int id : docs_content.at(word))
+				for (const auto& [id, count] : docs_content.at(word))
 				{
+					double tf = calculate_TF(word, id);
+
 					if (document_to_relevance.count(id))
 					{
-						document_to_relevance[id]++;
+						document_to_relevance[id] += idf * tf;
 					}
 					else
 					{
-						document_to_relevance[id] = 1;
+						document_to_relevance[id] = idf * tf;
 					}
 				}
 			}
@@ -116,11 +153,11 @@ private: // methods
 		{
 			if (docs_content.count(word))
 			{
-				for (const int id : docs_content.at(word))
+				for (const auto& [id, count] : docs_content.at(word))
 				{
 					if (document_to_relevance.count(id))
 					{
-						document_to_relevance[id] = 0;
+						document_to_relevance[id] = 0.0;
 					}
 				}
 			}
@@ -142,8 +179,9 @@ private: // methods
 private: // fields
 	set<string> stop_words;
 	vector<Document> relevance;
-	map<string, set<int>> docs_content;
+	map<string, map<int, int>> docs_content;
 	int docs_count_ = 0;
+	vector<int> docs_size_;
 
 private: // methods
 
