@@ -121,10 +121,16 @@ private: // methods
 		{
 			double idf = calculate_IDF(word);
 			
-			if (docs_content.count(word) && idf)
+			if (docs_content.count(word))
 			{
 				for (const auto& [id, count] : docs_content.at(word))
 				{
+					//if (!idf)
+					//{
+					//	document_to_relevance[id] = idf * docs_content.at(word).at(id);
+					//	continue;
+					//}
+					
 					if (document_to_relevance.count(id))
 					{
 						document_to_relevance[id] += idf * docs_content.at(word).at(id);
@@ -145,7 +151,7 @@ private: // methods
 				{
 					if (document_to_relevance.count(id))
 					{
-						document_to_relevance[id] = 0.0;
+						document_to_relevance[id] = -1.0;
 					}
 				}
 			}
@@ -154,7 +160,7 @@ private: // methods
 		vector<Document> matched_documents;
 		for (const auto& [id, relevance] : document_to_relevance)
 		{
-			if (relevance)
+			if (relevance != -1.0)
 			{
 				matched_documents.push_back({ id, relevance });
 			}
