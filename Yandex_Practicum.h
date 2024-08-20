@@ -37,7 +37,7 @@ public:
 
 	void AddDocument(int doc_id, const string& text)
 	{
-		const vector<string> words = SplitIntoWords(text, true);
+		const vector<string> words = SplitIntoWordsNoStop(text);
 		for (const string& word : words)
 		{
 			if (docs_content.count(word))
@@ -58,7 +58,7 @@ public:
 	{
 		query query_words;
 		
-		for (const string& word : SplitIntoWords(text, true)) {
+		for (const string& word : SplitIntoWordsNoStop(text)) {
 			if (word.at(0) == '-')
 			{
 				query_words.min_words.insert(word.substr(1));
@@ -185,17 +185,14 @@ private: // fields
 
 private: // methods
 
-	vector<string> SplitIntoWords(const string& text, bool stopWords = false) const
+	vector<string> SplitIntoWords(const string& text) const
 	{
 		vector<string> words;
 		string word;
 		for (const char c : text) {
 			if (c == ' ') {
 				if (!word.empty()) {
-					if (!stopWords || (stopWords && !stop_words.count(word)))
-					{
-						words.push_back(word);
-					}
+					words.push_back(word);
 					word.clear();
 				}
 			}
@@ -207,6 +204,17 @@ private: // methods
 			words.push_back(word);
 		}
 
+		return words;
+	}
+
+	vector<string> SplitIntoWordsNoStop(const string& text) const
+	{
+		vector<string> words;
+		for (const string& word : SplitIntoWords(text)) {
+			if (stop_words.count(word) == 0) {
+				words.push_back(word);
+			}
+		}
 		return words;
 	}
 
