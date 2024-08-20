@@ -141,8 +141,9 @@ private: // methods
 
 private: // fields
 	set<string> stop_words;
-	vector<Document> relevantce;
+	vector<Document> relevance;
 	map<string, set<int>> docs_content;
+	int docs_count_ = 0;
 
 private: // methods
 
@@ -168,17 +169,6 @@ private: // methods
 			words.push_back(word);
 		}
 
-		return words;
-	}
-
-	vector<string> SplitIntoWordsNoStop(const string& text) const
-	{
-		vector<string> words;
-		for (const string& word : SplitIntoWords(text)) {
-			if (stop_words.count(word) == 0) {
-				words.push_back(word);
-			}
-		}
 		return words;
 	}
 
