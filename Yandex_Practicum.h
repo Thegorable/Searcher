@@ -115,7 +115,9 @@ private: // methods
 	
 	vector<Document> FindAllDocuments(const query& query_words) const
 	{
-		map<int, double> document_to_relevance;
+		vector<Document> match_docs;
+		map<int, int> match_ids;
+
 		for (const string& word : query_words.plus_words)
 		{
 			double idf = calculate_IDF(word);
@@ -124,14 +126,16 @@ private: // methods
 			{
 				for (const auto& [id, tf] : docs_content.at(word))
 				{	
-					if (document_to_relevance.count(id))
+					if ( !match_ids.count(id) )
 					{
-						document_to_relevance[id] += idf * docs_content.at(word).at(id);
+						match_ids[id] = match_docs.size();
+						match_docs.push_back(Document{ id , idf * tf });
 					}
 					else
 					{
-						document_to_relevance[id] = idf * docs_content.at(word).at(id);
+						match_docs[match_ids.at(id)].relevance += idf * tf;
 					}
+					
 				}
 			}
 		}
@@ -140,26 +144,23 @@ private: // methods
 		{
 			if (docs_content.count(word))
 			{
-				for (const auto& [id, count] : docs_content.at(word))
+				for (const auto& [id_doc, tf] : docs_content.at(word))
 				{
-					if (document_to_relevance.count(id))
+					if (match_ids.count(id_doc) && match_ids.at(id_doc) != -1)
 					{
-						document_to_relevance[id] = -1.0;
+						int vec_id = match_ids.at(id_doc);
+						
+						match_docs[vec_id] = match_docs[match_docs.size() - 1];
+						match_ids[id_doc] = -1;
+						match_ids[match_docs[vec_id].id] = vec_id;
+						match_docs.resize(match_docs.size() - 1);
+						
 					}
 				}
 			}
 		}
 
-		vector<Document> matched_documents;
-		for (const auto& [id, relevance] : document_to_relevance)
-		{
-			if (relevance != -1.0)
-			{
-				matched_documents.push_back({ id, relevance });
-			}
-		}
-
-		return matched_documents;
+		return match_docs;
 	}
 	
 
